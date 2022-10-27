@@ -1,0 +1,16 @@
+--
+use msdb;
+go
+select name,run_date,run_duration,run_status,server,message,description,step_name,SYSDATETIME()
+from msdb.dbo.sysjobs sj
+join msdb.dbo.sysjobhistory sh
+on sj.job_id=sh.job_id
+where 
+--name like ''''DBCC%'''' and 
+run_date in (select max(run_date)from msdb.dbo.sysjobs sj
+join msdb.dbo.sysjobhistory sh
+on sj.job_id=sh.job_id 
+group by name
+--where name like ''''DBCC%''''
+)
+and run_status ='0';
