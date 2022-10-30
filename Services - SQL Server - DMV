@@ -1,0 +1,2 @@
+select * from sys.dm_server_services;
+-- This will return information about the services on the current SQL instance
