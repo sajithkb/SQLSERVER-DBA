@@ -1,0 +1,9 @@
+/* By using the DMV sys.dm_os_performance_counters, we can query the total and target server memory to identify the memory used and total memory assigned to the SQL server instance.
+*/
+select object_name,
+counter_name,
+(cntr_value/1024) as [Counter Value in MB],
+cntr_value as [CounterValue in KB]
+from sys.dm_os_performance_counters
+where counter_name in
+('Total Server Memory (KB)','Target Server Memory (KB)')
