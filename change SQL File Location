@@ -1,0 +1,40 @@
+/*Find the names and physical location for the data and log files for the particular database*/
+ 
+select name,physical_name  from
+sys.master_files;
+ 
+/*Set the database OFFLINE by the following query*/
+ 
+ alter database Orion
+ set offline
+ 
+/*ERROR!!!! The database is in USE. How to solve this ?
+Either Kill the process by using the Activity monitor or use the following Query. */
+ 
+ alter database Orion
+ set offline with rollback immediate
+ 
+/*Modify the file location*/
+ 
+/*For Data File*/
+alter database Orion
+modify file
+ (
+ name =Orion,
+ filename='P:\DATAFILES\Orion_DataFile.mdf' -- New Location
+)
+ 
+ /*For Log Files*/
+alter database Orion
+modify file
+ (
+ name =Orion_log,
+ filename='R:\LOGFILES\Orion_LogFile.Ldf'  --New Location
+ )
+/*Physically move the data & log files to new location mentioned in step 3*/
+/*Change the status of the databse to ONLINE state*/
+ 
+Alter database ORION
+set online;
+ 
+ /*DONE !!!! Files are moved to new location.*/
