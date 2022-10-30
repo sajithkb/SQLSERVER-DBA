@@ -1,0 +1,9 @@
+/* Microsoft SSRS, that is SQL Server Reporting Service is a well know reporting tool from Microsoft to display the reports. The Scaleout option is now available only in the enterprise version. In 2012, the Scaleout option was included with the standard version. While migration, due to this incompatibility, the report server may not work.
+
+So after the database migration, the scaleout server names must be deleted from the SQL Server report database tables for SSRS to work. Delete all the encryption keys and generate a new encryption key.
+
+Delete the Keys by using the following SQL Query:- */
+
+Use ReportServer;
+go
+Delete from dbo.keys where Machinename='Machine name';
