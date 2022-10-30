@@ -1,0 +1,21 @@
+/*SQL Server Accelerated database recovery is a new feature in SQL 2019 which helps faster DB recovery or rollback of the database transactions in the event of an unexpected SQL server crash or restart.
+
+Who should consider using the SQL Server ADR:-
+
+The workloads with long running transactions.
+The cases where the active transactions causing the transaction log to grow.
+The databases with long recovery time due to an unexpected SQL server restart.
+
+-- column is_accelerated_database_recovery_on will provide the status of ADR for a particular database*/
+
+Create Database Testdatabase
+go
+select name,is_accelerated_database_recovery_on from sys.databases where name ='Testdatabase';
+
+/* --ON the ADR for the database Testdatabase. */
+Alter database Testdatabase set ACCELERATED_DATABASE_RECOVERY =on
+/*As we know the version store is in the tempdb. but Microsoft introduced the Persistent Version Store (PVS) to store the version changes and is stored in the database itself. we can specify a file group for the version store in the alter statement.
+
+--The slog is used to redo and undo all the transaction and this slog is an in memory operation which is not relying on the transaction log.
+
+--The recovery of a bulk insert will be fast if the ADR is enabled.*/
