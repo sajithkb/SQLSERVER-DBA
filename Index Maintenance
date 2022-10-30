@@ -1,0 +1,151 @@
+--To find the average fragmentation of all the indexes in database:-
+
+SELECT S.name as 'Schema',
+T.name as 'Table',
+I.name as 'Index',
+inx.avg_fragmentation_in_percent,
+inx.page_count
+FROM sys.dm_db_index_physical_stats (DB_ID(), NULL, NULL, NULL, NULL) AS inx
+INNER JOIN sys.tables T on T.object_id = inx.object_id
+INNER JOIN sys.schemas S on T.schema_id = S.schema_id
+INNER JOIN sys.indexes I ON I.object_id = inx.object_id
+AND inx.index_id = I.index_id
+WHERE inx.database_id = DB_ID()
+and I.name is not null
+AND inx.avg_fragmentation_in_percent > 0
+ORDER BY inx.avg_fragmentation_in_percent desc
+
+*/ *******The Script for rebuilding an index is as follows. Index Rebuild will update the statistics automatically.*******/
+
+--Syntax
+Alter index indexName on schemaname.tablename;
+---Rebuild index on a table Payroll
+Alter index ix_workinghrs on HR.Payroll;
+--Rebuilding all indexes on a table
+Alter index ALL on HR.Payroll;
+--Rebuilding indexes with different options
+Alter Index all on HR.Payroll
+Rebuild with ( FillFactor=80,
+                         Sort_InTempdb=ON,
+                         Statistics_norecompute=ON,
+                          Online=ON,
+                          Data_compression=Row);
+                          
+                          
+ /*Rebuild/Reorganize indexes on all the tables on a database based on the fragmentation. The below stored procedure will reorganize the index if the fragmentation is between 10% and 30%. 
+ and Rebuild if the fragmentation is above 30%. The stored procedure is using dynamic SQL to generate the alter index scripts.*/
+ 
+ USE [master]
+GO
+/****** Object:  StoredProcedure [dbo].[EPO]    Script Date: 4/18/2019 1:35:08 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- ensure a USE <databasename> statement has been executed first.
+CREATE Procedure [dbo].sp_INDEX_MAINTENANCE_SKB_1
+as
+SET NOCOUNT ON;
+DECLARE @objectid int;
+DECLARE @indexid int;
+DECLARE @partitioncount bigint;
+DECLARE @schemaname sysname;
+DECLARE @objectname sysname;
+DECLARE @indexname sysname;
+DECLARE @partitionnum bigint;
+DECLARE @partitions bigint;
+DECLARE @frag float;
+DECLARE @command varchar(8000);
+-- ensure the temporary table does not exist
+IF EXISTS (SELECT name FROM sys.objects WHERE name = 'work_to_do')
+    DROP TABLE work_to_do;
+-- conditionally select from the function, converting object and index IDs to names.
+SELECT
+    S.object_id AS objectid,
+    S.index_id AS indexid,
+    S.partition_number AS partitionnum,
+    S.avg_fragmentation_in_percent AS frag
+INTO work_to_do
+FROM sys.dm_db_index_physical_stats (DB_ID(), NULL, NULL , NULL, 'LIMITED') S
+join sys.indexes I on
+I.object_id=s.object_id and s.index_id=i.index_id
+JOIN SYS.objects O ON 
+I.object_id=O.object_id
+WHERE  is_ms_shipped=0 and allow_page_locks = 1 AND
+avg_fragmentation_in_percent > 10.0 AND S.index_id > 0;
+-- Declare the cursor for the list of partitions to be processed.
+DECLARE partitions CURSOR FOR SELECT * FROM work_to_do;
+ 
+-- Open the cursor.
+OPEN partitions;
+ 
+-- Loop through the partitions.
+FETCH NEXT
+   FROM partitions
+   INTO @objectid, @indexid, @partitionnum, @frag;
+ 
+WHILE @@FETCH_STATUS = 0
+    BEGIN;
+        SELECT @objectname = o.name, @schemaname = s.name
+        FROM sys.objects AS o
+        JOIN sys.schemas as s ON s.schema_id = o.schema_id
+        WHERE o.object_id = @objectid;
+ 
+        SELECT @indexname = name
+        FROM sys.indexes
+        WHERE  object_id = @objectid AND index_id = @indexid;
+ 
+        SELECT @partitioncount = count (*)
+        FROM sys.partitions
+        WHERE object_id = @objectid AND index_id = @indexid;
+ 
+-- 30 is an arbitrary decision point at which to switch between reorganizing and rebuilding
+IF @frag < 30.0
+    BEGIN;
+    SELECT @command = 'ALTER INDEX [' + @indexname + '] ON ' + @schemaname + '.[' + @objectname + '] REORGANIZE;' +
+ 
+ N'UPDATE STATISTICS ' +  @schemaname + N'.[' + @objectname + N'] [' + @indexname+']'
+ 
+    --IF @partitioncount > 1
+    --    SELECT @command = @command + ' PARTITION=' + CONVERT (CHAR, @partitionnum);
+ 
+    EXEC (@command);
+    END;
+ 
+IF @frag >= 30.0
+    BEGIN;
+    SELECT @command = 'ALTER INDEX [' + @indexname +'] ON ' + @schemaname + '.[' + @objectname + '] REBUILD'
+    IF @partitioncount > 1
+        SELECT @command = @command + ' PARTITION=' + CONVERT (CHAR, @partitionnum);
+ 
+    EXEC (@command);
+    END;
+PRINT 'Executed ' + @command;
+ 
+FETCH NEXT FROM partitions INTO @objectid, @indexid, @partitionnum, @frag;
+END;
+-- Close and deallocate the cursor.
+CLOSE partitions;
+DEALLOCATE partitions;
+ 
+-- drop the temporary table
+IF EXISTS (SELECT name FROM sys.objects WHERE name = 'work_to_do')
+    DROP TABLE work_to_do;
+ /****************************************************/
+
+use DatabaseName;
+go
+Exec INDEX_MAINTENANCE_SKB_1
+
+/********************************************************/
+/* WAIT_AT_LOW_PRIORITY indicates that the online index rebuild operation will wait for low priority locks, 
+allowing other operations to proceed while the online index build operation is waiting. Omitting the WAIT AT LOW PRIORITY option is equivalent to 
+WAIT_AT_LOW_PRIORITY (MAX_DURATION = 0 minutes, ABORT_AFTER_WAIT = NONE). */
+--The following will Rebuild all indexes on the product table.
+ALTER INDEX ALL ON Production.Product 
+REBUILD WITH  
+( 
+    ONLINE = ON ( WAIT_AT_LOW_PRIORITY ( MAX_DURATION = 4 MINUTES, ABORT_AFTER_WAIT = self  ) )   
+);
+
+ 
