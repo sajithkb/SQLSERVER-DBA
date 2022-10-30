@@ -1,0 +1,8 @@
+-- Select Query
+Select * from Openquery(Linked_server_name, 'Select * from apps.table1 where name=''test''')
+-- Insert Query
+Insert Openquery(Linked_Server_Name, 'Select name from apps.tables')
+values('Jomon');
+ 
+Insert into Linked_server_name..apps.tables
+Values('Jomon');
