@@ -78,3 +78,5 @@ SELECT * FROM sys.fn_get_audit_file ('R:\Audit_Logs\AUDIT-1*.sqlaudit',NULL,NULL
 where action_id='BAL' and server_principal_name !='domain\user_Account';
 GO
 
+--Returns a row for each server audit indicating the current state of the audit
+select * from sys.dm_server_audit_status;
