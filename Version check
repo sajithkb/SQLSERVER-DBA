@@ -1,0 +1,6 @@
+select  serverproperty('instancename') as InstanceName
+       ,serverproperty('machinename') as ServerName
+       ,serverproperty('productversion') as SQLServerVersion
+       ,serverproperty('Edition') as Edition;
+       
+SELECT @@VERSION AS 'SQL Server Version';
