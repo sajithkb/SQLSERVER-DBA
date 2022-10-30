@@ -1,0 +1,6 @@
+SELECT
+ServerProperty('MachineName') as [Machine Name],
+SERVERPROPERTY('InstanceName') as [Instance Name],
+Convert(nvarchar(30),create_date,103) as [SQL Server Installation Date]
+FROM sys.server_principals
+WHERE sid = 0x010100000000000512000000
