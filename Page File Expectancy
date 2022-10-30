@@ -1,0 +1,14 @@
+/*
+Page Life Expectancy (PLE) is the age (seconds) of a data page in the buffer cache. If the PLE count is less, then it will affect the performance and more memory should be allocated to the SQL Instance to resolve this issue. Every time a data page is read into the memory for processing and written back to the disk after completing the task.
+
+The following query can be used to find the PLE count.
+
+*/
+
+SELECT @@SERVERNAME as ServerName,
+[object_name],
+ [counter_name],
+ [cntr_value] as [PLE value]
+ FROM sys.dm_os_performance_counters
+ WHERE [object_name] LIKE '%Manager%'
+ AND [counter_name] = 'Page life expectancy';
