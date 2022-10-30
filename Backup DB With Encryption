@@ -1,0 +1,42 @@
+/*
+Encryption can be enabled for the database backups. for this a master key and certificate has to be created in the SQL server instance. Please check the blog post below for creating Master key and certificate.
+*/
+
+--Script to backup the database with encryption.
+BACKUP DATABASE [Database_A]
+TO  DISK = N'C:\Program Files\Microsoft SQL Server\MSSQL15.SQL2019ENT\MSSQL\Backup\DB_Backup.bkp' WITH FORMAT,
+INIT,  MEDIANAME = N'New_BackupSet',  NAME = N'Database_A-Full Database Backup', SKIP, NOREWIND, NOUNLOAD,
+ENCRYPTION(ALGORITHM = AES_256, SERVER CERTIFICATE = [TDE_CERT_1]),
+STATS = 10
+GO
+
+/*The Destination SQL Server must have the certificate from the source database server to restore the backup*/
+--Backup the certificate from the first instance.
+ 
+BACKUP CERTIFICATE TDE_CERT_1
+to FILE = 'd:\TdeCert11.cer'
+WITH PRIVATE KEY(
+  FILE = 'd:\TdeCert11.key',
+  ENCRYPTION BY PASSWORD = 'pw1234!');
+ 
+-- Check whether the master keys are present on the second instance
+SELECT name KeyName,
+  symmetric_key_id KeyID,
+  key_length KeyLength,
+  algorithm_desc KeyAlgorithm
+FROM sys.symmetric_keys;
+ 
+-- If no master keys then create master keys
+CREATE MASTER KEY ENCRYPTION BY PASSWORD='P@ssw01'
+GO
+ 
+--open the master key
+OPEN MASTER KEY DECRYPTION  BY PASSWORD='P@ssw01'
+ 
+--Restore the certificate in the second instance from the backup.
+CREATE CERTIFICATE TDE_CERT_1
+FROM FILE = 'd:\TdeCert11.cer'
+WITH PRIVATE KEY(
+  FILE = 'd:\TdeCert11.key',
+  DECRYPTION BY PASSWORD = 'pw1234!'
+);
