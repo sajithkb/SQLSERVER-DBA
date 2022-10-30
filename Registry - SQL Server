@@ -1,0 +1,2 @@
+select * from sys.dm_server_registry;
+--Returns configuration and installation information that is stored in the Windows registry for the current instance of SQL Server
