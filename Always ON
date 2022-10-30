@@ -1,0 +1,76 @@
+*DMV for checking the Always on Availability Status and Configurations*/
+ 
+select * from sys.dm_hadr_availability_replica_states;
+select * from sys.availability_replicas;
+select * from sys.availability_groups
+select * from sys.availability_group_listeners;
+select * from sys.dm_hadr_database_replica_states;
+ 
+select * from sys.dm_hadr_database_replica_cluster_states;
+select * from sys.dm_hadr_availability_replica_cluster_nodes;
+
+/*To Find Replica Names, Availability Groups, Listener Names, Port & IP Address. */
+
+select
+ar.replica_server_name as [Replica Server Names],
+ag.name as [Availabity Group Name],
+al.dns_name as [Listener Name],
+al.Port as [Listener Port],
+al.ip_configuration_string_from_cluster as [IP Address],
+case when is_local= 0 then 'Remote'
+when is_local = 1 then 'Local'
+end as [Local/remote],
+role_desc as Roles,
+case when operational_state_desc is null then 'Replica is not Local'
+else operational_state_desc
+end as [Operational State],
+recovery_health_desc,
+synchronization_health_desc,
+connected_state_desc as [Connection Status]
+from sys.dm_hadr_availability_replica_states hadrs
+join sys.availability_replicas  ar
+on hadrs.replica_id=ar.replica_id
+join sys.availability_groups ag
+on ag.group_id=hadrs.group_id
+join sys.availability_group_listeners al
+on al.group_id=hadrs.group_id;
+
+/* To Find Database Status in each Replica */
+
+select DB_NAME(database_id) as [Database Name],
+ag.name as [Availabity Group Name],
+ar.replica_server_name as [Replica Server Name],
+is_local,
+is_primary_replica,
+synchronization_state_desc,
+synchronization_health_desc,
+database_state_desc,
+case when is_suspended = 0 then 'Resumed'
+when is_suspended=1 then 'Suspended' end,
+suspend_reason_desc
+from sys.dm_hadr_database_replica_states hadrs
+join sys.availability_groups ag
+on ag.group_id=hadrs.group_id
+join sys.availability_replicas  ar
+on hadrs.replica_id=ar.replica_id
+order by DB_NAME(database_id) asc, is_primary_replica desc;
+
+/* To find the Databases which is not synchronizing with other replicas: */
+select DB_NAME(database_id) as [Database Name],
+ag.name as [Availabity Group Name],
+ar.replica_server_name as [Replica Server Name],
+is_local,
+is_primary_replica,
+synchronization_state_desc,
+synchronization_health_desc,
+database_state_desc,
+case when is_suspended = 0 then 'Resumed'
+ when is_suspended=1 then 'Suspended' end,
+suspend_reason_desc
+from sys.dm_hadr_database_replica_states hadrs
+join sys.availability_groups ag
+on ag.group_id=hadrs.group_id
+join sys.availability_replicas  ar
+on hadrs.replica_id=ar.replica_id
+where synchronization_state_desc='NOT SYNCHRONIZING'
+order by DB_NAME(database_id) asc, is_primary_replica desc;
