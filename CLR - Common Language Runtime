@@ -1,0 +1,65 @@
+/* The common language runtime (CLR) is the heart of the Microsoft .NET Framework and provides the execution environment for all .NET Framework code.(From Microsoft Docs). By Default CLR integration is disabled on SQL Server.
+Review the current CLR option by executing sp_configure:- */
+
+sp_configure 'clr enabled';
+
+--Enable CLR Integration
+
+sp_configure 'clr enabled', 1 
+GO 
+RECONFIGURE 
+GO
+
+/* By enabling CLR, the dot net code can be executed from inside SQL Server. 
+To enable CLR on SQL Server, the user must require server level permissions sysadmin or serveradmin. The steps used in the below example is as follows:-
+
+Enable CLR in SQL Server and disable the CLR integrated security.
+Create a class/dll in visual studio
+Create Assembly in a SQL user database
+Create Stored procedure
+Execute the Stored procedure
+SQL Server Code:- */
+
+sp_configure 'clr enabled', 1 
+GO
+SP_CONFIGURE 'clr strict security',0;
+RECONFIGURE;
+
+--Visual Studio Code
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.SqlServer.Server;
+using System.Data;
+using System.Data.SqlTypes;
+using System.Data.SqlClient;
+ 
+ 
+namespace SQLCLR
+{
+    public class StoredProcedure
+    {
+        [Microsoft.SqlServer.Server.SqlProcedure]
+        public static void SQLCLRTest()
+        {
+            SqlContext.Pipe.Send("Testing the CLR from sqlserver");
+        }
+    }
+}
+--****** SQL Server code *******
+--Create Assembly
+Use Databasename;
+go
+Create assembly SQLCLR
+from 'C:\Users\SKB\source\repos\SQLCLR\obj\Debug\sqlclr.dll'
+with permission_set=safe
+go
+--Create Stored Procedure
+Create Procedure mysp_SQLCLR
+AS
+EXTERNAL NAME SQLCLR.[SQLCLR.StoredProcedure].SQLCLRTest;
+--Execute the stored procedure
+EXEC mysp_SQLCLR
