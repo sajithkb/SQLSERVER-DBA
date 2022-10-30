@@ -1,0 +1,10 @@
+
+--To Add User_A as DBO on Database_A
+USE [Database_A]
+GO
+ALTER AUTHORIZATION ON DATABASE::[Database_A] TO [User_A]
+GO
+--To Add User_B as DBO on Database_B
+USE [Database_B]
+GO
+ALTER AUTHORIZATION ON DATABASE::[Database_B] TO [User_B
