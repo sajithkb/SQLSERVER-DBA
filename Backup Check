@@ -1,0 +1,44 @@
+/*
+Scripts for querying SQL Backup details from the SQL Server. Backup can be categorized into 3 Types:-
+
+Full Backup
+Differential Backup
+Transactional Log Backup
+Recovery model for the databases are as follows:-
+
+Full
+Bulk-Logged
+Simple
+Transaction Log Backup will only work with databases having Full and bulk-logged recovery models.
+*/
+
+use msdb;
+go
+ 
+--CHECK FOR LAST FULL BACKUPS
+select database_name,name,convert(date,backup_start_date),backup_finish_date,type,description,recovery_model from dbo.backupset
+where backup_finish_date > GETDATE()-7
+--and type <> 'L'
+order by database_name,backup_finish_date desc;
+ 
+--CHECK FOR MISSED BACKUPS
+select name from sys.databases where name not in (select database_name from dbo.backupset
+where backup_finish_date > GETDATE()-7) and state_desc ='ONLINE'
+ 
+--CHECK FOR LAST 24 HOURS WITH COUNT
+declare @condition tinyint;
+SET @condition = 24;
+with
+    backupInsight_cte (database_id, last_backup, health_check)
+    as
+    (
+        select d.database_id, max(b.backup_start_date) AS last_backup, case when (datediff( hh , max(b.backup_start_date) , getdate()) < @condition) then 1 else 0 end as health_check
+        from sys.databases as d left join msdb..backupset as b on d.name = b.database_name
+        where d.database_id > 4
+        group by d.database_id
+    )
+select
+    coalesce(sum(health_check),0) [Within 24hrs],
+    coalesce(sum(case when health_check = 0 AND last_backup IS NOT NULL then 1 else 0 end),0) [Older than 24hrs],
+    coalesce(sum(case when health_check = 0 AND last_backup IS NULL then 1 else 0 end),0) [No backup found]
+from backupInsight_cte
