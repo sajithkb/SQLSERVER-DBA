@@ -1,0 +1,33 @@
+--To retrieve all the logins and database users. following script can be used.
+
+SELECT 
+r.[name] as [role], p.[name] as [member],sl.loginname,p.type_desc from
+sys.database_role_members m
+join sys.database_principals r on m.role_principal_id = r.principal_id
+join sys.database_principals p on m.member_principal_id = p.principal_id
+join sys.syslogins sl  on sl.sid=p.sid;
+
+/* if we want to fetch the user and the details from all the database, the following script can be used. 
+This script will create a temporary table and use MSForeachDB system stored procedure to iterate through all the databases. */
+
+--Create temp table #TTT
+
+create table #TTT(Database_Name nvarchar(100),Role nvarchar(100),Member nvarchar(100),LoginName nvarchar(100),Type_Desc nvarchar(100))
+--Insert the data from all the databases
+Execute master.sys.sp_MSforeachdb 'USE [?];
+if db_name() not in(''master'',''model'',''msdb'',''tempdb'')
+begin
+insert into #TTT
+SELECT
+  ''?'' as DatabaseName,
+  r.[name] as [role], p.[name] as [member],sl.loginname,p.type_desc from
+       sys.database_role_members m
+join
+       sys.database_principals r on m.role_principal_id = r.principal_id
+join
+       sys.database_principals p on m.member_principal_id = p.principal_id
+       join sys.syslogins sl
+       on sl.sid=p.sid
+       end'
+--Querry the tmp table
+select * from #TTT order by Database_Name asc
