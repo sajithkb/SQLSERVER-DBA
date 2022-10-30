@@ -1,0 +1,81 @@
+/*
+Transparent Data Encryption(TDE) is used to encrypt the data on rest. To Enable TDE on the user databases, we need to create Master Key and Database encryption keys. Each of these keys can be backed up and needs to be protected with a certificate and a password.
+
+In Enterprise environments handling master keys and the certificates are difficult. Extensible key management (EKM) can be used to store the certificates and encryption keys for multiple SQL servers.
+
+The EKM module must be compatible with the SQL server.
+
+Please find below the script for creating the certificates and master keys. These Scripts are for testing and learning.
+*/
+
+--1--CREATE MASTER KEY (DMK)
+USE MASTER;
+GO
+CREATE MASTER KEY ENCRYPTION BY PASSWORD='P@ssw01'
+GO
+--VERIFY THE DMK I CREATED OR NOT
+SELECT name KeyName,
+  symmetric_key_id KeyID,
+  key_length KeyLength,
+  algorithm_desc KeyAlgorithm
+FROM sys.symmetric_keys;
+ 
+--2--CREATE CERTIFICATE PROTECTED BY MASTER KEY
+CREATE CERTIFICATE TDE_CERT_1
+WITH SUBJECT = 'TDE ENCRYPTION';
+--VERIFY CERTIFICATE IS INSTALLED OR NOT
+SELECT name CertName,
+  certificate_id CertID,
+  pvt_key_encryption_type_desc EncryptType,
+  issuer_name Issuer
+FROM sys.certificates
+WHERE issuer_name = 'TDE certificate';
+ 
+--3--CREATE DATABASE ENCRYPTION KEY
+ USE USER_DATABASE;
+ GO
+CREATE DATABASE ENCRYPTION KEY
+WITH ALGORITHM = TRIPLE_DES_3KEY --AES_128 
+ENCRYPTION BY SERVER CERTIFICATE cteDemoCert;
+--VERIFY
+SELECT DB_NAME(database_id) DbName,
+  encryption_state EncryptState,
+  key_algorithm KeyAlgorithm,
+  key_length KeyLength,
+  encryptor_type EncryptType
+FROM sys.dm_database_encryption_keys;
+ 
+--4--BACKUP SERVICE MASTER KEYS
+Use master;
+GO
+ BACKUP SERVICE MASTER KEY
+TO FILE = 'C:\DataFiles\MsSqlServer\SvcMasterKey.key'
+ENCRYPTION BY PASSWORD = 'pw1234!';
+--BACKUP DMK
+BACKUP MASTER KEY
+TO FILE = 'C:\DataFiles\MsSqlServer\DbMasterKey.key'
+ENCRYPTION BY PASSWORD = 'pw1234!'
+ 
+--5--BACKUP CERTIFICATE
+BACKUP CERTIFICATE TdeCert
+TO FILE = 'C:\DataFiles\MsSqlServer\TdeCert.cer'
+WITH PRIVATE KEY(
+  FILE = 'C:\DataFiles\MsSqlServer\TdeCert.key',
+  ENCRYPTION BY PASSWORD = 'pw1234!'
+);
+ 
+--6--ENABLE ENCRYPTION
+ALTER DATABASE USER_DATABASE
+SET ENCRYPTION ON;
+GO
+ 
+--CHECK ENCRYPTION STATUS FOR EACH DATABASE
+Select name as [Database Name],
+case when is_encrypted=1 then 'Encryption Enabled'
+end as [Encryption Status]
+From sys.databases
+where is_encrypted=1;
+ 
+--TO DISABLE ENCRYPTION FOR A PARTICULAR DATABASE
+Alter Database DatabaseName
+set encryption off;
