@@ -1,0 +1,11 @@
+/*To Grant Permission to manage logins. The user will get the ability to create new logins and drop/alter any existing logins.*/
+
+/*--Grant "Alter Any Login" Permission to a user*/
+Use Master
+Go
+GRANT ALTER ANY LOGIN TO [Domain\User_Account];
+ 
+/*--Revoke "Alter Any Login" Permission from a User*/
+Use Master;
+Go
+REVOKE ALTER ANY LOGIN FROM [Domain\User_Account];
