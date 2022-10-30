@@ -1,0 +1,22 @@
+/* Heap Tables are tables without clustered index. The Script to find the heap tables in a database is as follows:- */
+
+SELECT T.Name as Table_Name,I.Type_desc
+FROM sys.indexes I     
+    INNER JOIN sys.tables T
+        ON I.object_id = T.object_id
+WHERE I.type = 0 AND T.type = 'U';
+
+/*Find all the Heap tables with number of rows in each Heap Table:- */
+
+SELECT SCHEMA_NAME(schema_id) AS [SchemaName],
+[Tables].name AS [TableName],
+SUM([Partitions].[rows]) AS [TotalRowCount]
+FROM sys.tables AS [Tables]
+JOIN sys.partitions AS [Partitions]
+ON [Tables].[object_id] = [Partitions].[object_id]
+AND [Partitions].index_id IN ( 0, 1 )
+join sys.indexes I
+on i.object_id=Tables.object_id
+where i.type=0
+GROUP BY SCHEMA_NAME(schema_id), [Tables].name
+order by TotalRowCount desc;
