@@ -1,0 +1,126 @@
+/*  The Use of TempDB is as follows. The Tempdb database will be recreated on each restart of SQL Services.
+
+Online Index Operations
+Global and Temporary tables are created in tempdb
+Table variables, Temporary stored procedures and Cursors
+DBCC Check DB – Snapshot of the database
+Snapshot isolation & Read committed Snapshot Isolation.
+Sort Operations.
+TempDB Settings – Best Practice.
+
+Increase the number of data files in proportion to the number of cores.
+Use a High-Performance Disk (Flash / SSD Disk) to store the files.
+Provide an adequate amount of space in the Disk to handle the typical workload in the environment.
+Enable Trace Flags T117 & T118 if required on the SQL Version.
+SQL Scripts to understand tempdb:
+*/
+-- Find the data and log files in tempdb
+use tempdb;
+go
+select * from sys.database_files;
+ 
+--To Check the current size and growth parameters for tempdb:-
+SELECT name AS FileName,
+    size*1.0/128 AS FileSizeInMB,
+    CASE max_size
+        WHEN 0 THEN 'Autogrowth is off.'
+        WHEN -1 THEN 'Autogrowth is on.'
+        ELSE 'Log file grows to a maximum size of 2 TB.'
+    END,
+    growth AS 'GrowthValue',
+    'GrowthIncrement' =
+        CASE
+            WHEN growth = 0 THEN 'Size is fixed.'
+            WHEN growth > 0 AND is_percent_growth = 0
+                THEN 'Growth value is in 8-KB pages.'
+            ELSE 'Growth value is a percentage.'
+        END
+FROM tempdb.sys.database_files;
+GO
+ 
+-- Determining the amount of free space in tempdb
+SELECT SUM(unallocated_extent_page_count) AS [free pages],
+  (SUM(unallocated_extent_page_count)*1.0/128) AS [free space in MB]
+FROM tempdb.sys.dm_db_file_space_usage;
+ 
+-- Determining the amount of space used by the version store
+SELECT SUM(version_store_reserved_page_count) AS [version store pages used],
+  (SUM(version_store_reserved_page_count)*1.0/128) AS [version store space in MB]
+FROM tempdb.sys.dm_db_file_space_usage;
+ 
+-- Determining the amount of space used by internal objects
+SELECT SUM(internal_object_reserved_page_count) AS [internal object pages used],
+  (SUM(internal_object_reserved_page_count)*1.0/128) AS [internal object space in MB]
+FROM tempdb.sys.dm_db_file_space_usage;
+ 
+-- Determining the amount of space used by user objects
+SELECT SUM(user_object_reserved_page_count) AS [user object pages used],
+  (SUM(user_object_reserved_page_count)*1.0/128) AS [user object space in MB]
+FROM tempdb.sys.dm_db_file_space_usage;
+ 
+-- Obtaining the space consumed by internal objects in all currently running tasks in each session
+SELECT session_id,
+  SUM(internal_objects_alloc_page_count) AS task_internal_objects_alloc_page_count,
+  SUM(internal_objects_dealloc_page_count) AS task_internal_objects_dealloc_page_count
+FROM sys.dm_db_task_space_usage
+GROUP BY session_id;
+ 
+-- Obtaining the space consumed by internal objects in the current session for both running and completed tasks
+SELECT R2.session_id,
+  R1.internal_objects_alloc_page_count
+  + SUM(R2.internal_objects_alloc_page_count) AS session_internal_objects_alloc_page_count,
+  R1.internal_objects_dealloc_page_count
+  + SUM(R2.internal_objects_dealloc_page_count) AS session_internal_objects_dealloc_page_count
+FROM sys.dm_db_session_space_usage AS R1
+INNER JOIN sys.dm_db_task_space_usage AS R2 ON R1.session_id = R2.session_id
+GROUP BY R2.session_id, R1.internal_objects_alloc_page_count,
+  R1.internal_objects_dealloc_page_count;
+ 
+--Find the open transaction in tempdb
+use tempdb;
+go
+dbcc opentran();
+ 
+-- To Shink files in the Tempdb
+use tempdb;
+go
+Dbcc shrinkifle(2) -- file number
+ 
+--To Find the transaction details in the tempdb and the storage being used in the tempdb.
+use master;
+go
+SELECT tst.[session_id],
+s.[login_name] AS [Login Name],
+DB_NAME (tdt.database_id) AS [Database],
+tdt.[database_transaction_begin_time] AS [Begin Time],
+tdt.[database_transaction_log_record_count] AS [Log Records],
+tdt.[database_transaction_log_bytes_used] AS [Log Bytes Used],
+tdt.[database_transaction_log_bytes_reserved] AS [Log Bytes Rsvd],
+SUBSTRING(st.text, (r.statement_start_offset/2)+1,
+((CASE r.statement_end_offset
+WHEN -1 THEN DATALENGTH(st.text)
+ELSE r.statement_end_offset
+END - r.statement_start_offset)/2) + 1) AS statement_text,
+st.[text] AS [Last T-SQL Text],
+qp.[query_plan] AS [Last Plan]
+FROM sys.dm_tran_database_transactions tdt
+JOIN sys.dm_tran_session_transactions tst
+ON tst.[transaction_id] = tdt.[transaction_id]
+JOIN sys.[dm_exec_sessions] s
+ON s.[session_id] = tst.[session_id]
+JOIN sys.dm_exec_connections c
+ON c.[session_id] = tst.[session_id]
+LEFT OUTER JOIN sys.dm_exec_requests r
+ON r.[session_id] = tst.[session_id]
+CROSS APPLY sys.dm_exec_sql_text (c.[most_recent_sql_handle]) AS st
+OUTER APPLY sys.dm_exec_query_plan (r.[plan_handle]) AS qp
+where DB_NAME (tdt.database_id) = 'tempdb'
+ORDER BY [Log Bytes Used] DESC;
+ 
+/*Use Trace Flags T117 & T118 for SQL server 2014 and earlier versions
+ 
+Wait Types in SQL Server which is mostly due to TempDB Contention.
+
+PAGELATCH_EX — Use Faster Disk/ Memory-optimized TempDB Metadata
+PAGEIOLATCH_UP — Add More Data Files in TempDB 
+*/
