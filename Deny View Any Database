@@ -1,0 +1,13 @@
+--Deny View the database
+
+deny view any database to User_A;
+go
+deny view any database to User_B;
+
+/* Use the following script to view all the users with deny view permission :- */
+
+SELECT L.NAME AS GRANTEE_NAME, P.STATE_DESC, P.PERMISSION_NAME
+FROM SYS.SERVER_PERMISSIONS AS P JOIN SYS.SERVER_PRINCIPALS AS L
+ON P.GRANTEE_PRINCIPAL_ID = L.PRINCIPAL_ID
+WHERE PERMISSION_NAME = 'VIEW ANY DATABASE';
+GO
