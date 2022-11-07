@@ -1,0 +1,6 @@
+USE [master]
+GO
+DENY CONNECT SQL TO [sam]
+GO
+ALTER LOGIN [sam] DISABLE
+GO
