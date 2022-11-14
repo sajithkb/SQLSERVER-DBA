@@ -1,0 +1,19 @@
+/* CHECKING FOR THE LOG REUSE WAIT DESCRIPTION */
+----------------------------------------------------
+
+SELECT name, log_reuse_wait_desc
+FROM sys.databases
+
+/*SHRINK THE LOG FILE FOR A DATBASE*/
+----------------------------------------------------
+USE DATABASE_NAME;
+GO
+DBCC SHRINKFILE(2)
+
+/* SHRINK THE LOG FILE - ITERATE THORUGH EACH DATABASE */
+----------------------------------------------------------
+DECLARE @COMMAND VARCHAR(1000)
+SELECT @COMMAND = 'if ''?'' not in (''MASTER'',''MSDB'',''MODEL'',''TEMPDB'')
+BEGIN
+USE [?]  DBCC SHRINKFILE(2) END'
+EXEC sp_MSforeachdb  @COMMAND
