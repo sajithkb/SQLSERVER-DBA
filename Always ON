@@ -1,4 +1,5 @@
 *DMV for checking the Always on Availability Status and Configurations*/
+-------------------------------------------------------------------------------
  
 select * from sys.dm_hadr_availability_replica_states;
 select * from sys.availability_replicas;
@@ -10,6 +11,7 @@ select * from sys.dm_hadr_database_replica_cluster_states;
 select * from sys.dm_hadr_availability_replica_cluster_nodes;
 
 /*To Find Replica Names, Availability Groups, Listener Names, Port & IP Address. */
+------------------------------------------------------------------------------------------
 
 select
 ar.replica_server_name as [Replica Server Names],
@@ -36,6 +38,7 @@ join sys.availability_group_listeners al
 on al.group_id=hadrs.group_id;
 
 /* To Find Database Status in each Replica */
+-------------------------------------------------
 
 select DB_NAME(database_id) as [Database Name],
 ag.name as [Availabity Group Name],
@@ -56,6 +59,7 @@ on hadrs.replica_id=ar.replica_id
 order by DB_NAME(database_id) asc, is_primary_replica desc;
 
 /* To find the Databases which is not synchronizing with other replicas: */
+---------------------------------------------------------------------------------
 select DB_NAME(database_id) as [Database Name],
 ag.name as [Availabity Group Name],
 ar.replica_server_name as [Replica Server Name],
