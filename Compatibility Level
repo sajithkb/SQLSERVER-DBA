@@ -1,12 +1,13 @@
+/* Check the compatibility level of all the databases in the SQL Server */
+select Name, compatibility_level from sys.databases;
 
-
-select Name, compatibility_level from sys.databases
-
+/*Change the compatibility of a single database*/
 ALTER DATABASE [WideWorldImportersDW] SET COMPATIBILITY_LEVEL = 150;
 
+/*Change the compatibility of all the databases on the SQL Server */
 DECLARE @COMMAND VARCHAR(1000)
 SELECT @COMMAND = 'if ''?'' not in (''MASTER'',''MSDB'',''MODEL'',''TEMPDB'')
 BEGIN
 Alter database [?]  set COMPATIBILITY_LEVEL = 150
 END'
-EXEC sp_MSforeachdb  @COMMAND
+EXEC sp_MSforeachdb  @COMMAND;
