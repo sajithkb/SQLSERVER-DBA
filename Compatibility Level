@@ -1,0 +1,12 @@
+
+
+select Name, compatibility_level from sys.databases
+
+ALTER DATABASE [WideWorldImportersDW] SET COMPATIBILITY_LEVEL = 150;
+
+DECLARE @COMMAND VARCHAR(1000)
+SELECT @COMMAND = 'if ''?'' not in (''MASTER'',''MSDB'',''MODEL'',''TEMPDB'')
+BEGIN
+Alter database [?]  set COMPATIBILITY_LEVEL = 150
+END'
+EXEC sp_MSforeachdb  @COMMAND
