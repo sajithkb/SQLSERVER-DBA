@@ -1,0 +1,13 @@
+/*Example - Select max value for a set of distinct rows*/
+select [ServerName]
+      ,ADS1.DatabaseName
+      ,[DataFileSizeMB]
+      ,[LogFileSizeMB]	  
+	  ,LastUpdateDate2
+from SQLDBA.All_DatabaseSize ADS1
+INNER JOIN (
+	SELECT DatabaseName,MAX(LastUpdateDate) AS LastUpdateDate2
+	from SQLDBA.All_DatabaseSize
+	GROUP BY DatabaseName) ADS2
+ON ADS1.DatabaseName=ADS2.DatabaseName AND ADS1.LastUpdateDate=ADS2.LastUpdateDate2
+ORDER BY DatabaseName
