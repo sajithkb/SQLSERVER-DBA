@@ -1,0 +1,6 @@
+/* Find SQL Server Sessions with open transcation count */
+
+select * from sys.dm_exec_sessions where status='sleeping' and open_transaction_count =1  and is_user_process=1;
+
+--is_user_Process=0 :- System process/Session
+--is_user_process=1 :- User Proesss/Session
