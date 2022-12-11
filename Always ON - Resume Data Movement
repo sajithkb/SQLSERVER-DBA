@@ -1,0 +1,2 @@
+select 'Alter Database' +  ' ' + name +  ' set HADR Resume;'  from sys.databases where database_id > 4 
+Alter database DBNAME set HADR Resume;
