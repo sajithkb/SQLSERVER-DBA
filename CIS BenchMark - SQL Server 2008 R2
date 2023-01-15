@@ -1,0 +1,264 @@
+--To determine your SQL Server service pack level, run the following code snippet.
+SELECT SERVERPROPERTY('ProductLevel') as SP_installed,
+SERVERPROPERTY('ProductVersion') as Version;
+
+--Ensure 'Ad Hoc Distributed Queries' Server Configuration Option is set to '0' (Automated)
+SELECT name, CAST(value as int) as value_configured, CAST(value_in_use as
+int) as value_in_use
+FROM sys.configurations
+WHERE name = 'Ad Hoc Distributed Queries';
+
+--Ensure 'CLR Enabled' Server Configuration Option is set to '0'
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'clr enabled';
+
+--user-created assemblies, run the following query in all databases, replacing <database_name> with each database name:
+USE [<database_name>]
+GO
+16 | P a g e
+SELECT name AS Assembly_Name, permission_set_desc
+FROM sys.assemblies
+WHERE is_user_defined = 1;
+GO
+
+--Ensure 'Cross DB Ownership Chaining' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'cross db ownership chaining'; 
+
+--Ensure 'Database Mail XPs' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'Database Mail XPs';
+
+--Ensure 'Ole Automation Procedures' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'Ole Automation Procedures';
+
+--Ensure 'Remote Access' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'remote access';
+
+--Ensure 'Remote Access' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'remote access'; -- 1, 1
+
+--Ensure 'Remote Admin Connections' Server Configuration Option is set to '0' (Automated)
+USE master;
+GO
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'remote admin connections'
+AND SERVERPROPERTY('IsClustered') = 0;
+
+--Ensure 'Scan For Startup Procs' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'scan for startup procs';
+
+--Ensure 'SQL Mail XPs' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'SQL Mail XPs';
+
+--Ensure 'Trustworthy' Database Property is set to 'Off' (Automated)
+SELECT name
+FROM sys.databases
+WHERE is_trustworthy_on = 1
+AND name != 'msdb';
+
+--Ensure Unnecessary SQL Server Protocols are set to 'Disabled' (Manual)
+
+--Ensure SQL Server is configured to use non-standard ports (Automated)
+DECLARE @value nvarchar(256);
+EXECUTE master.dbo.xp_instance_regread
+N'HKEY_LOCAL_MACHINE',
+N'SOFTWARE\Microsoft\Microsoft SQL
+Server\MSSQLServer\SuperSocketNetLib\Tcp\IPAll',
+N'TcpPort',
+@value OUTPUT,
+N'no_output';
+SELECT @value AS TCP_Port WHERE @value = '1433';
+
+--Ensure 'Hide Instance' option is set to 'Yes' for Production SQL Server instances (Automated)
+DECLARE @getValue INT;
+EXEC master.sys.xp_instance_regread
+@rootkey = N'HKEY_LOCAL_MACHINE',
+@key = N'SOFTWARE\Microsoft\Microsoft SQL
+Server\MSSQLServer\SuperSocketNetLib',
+@value_name = N'HideInstance',
+@value = @getValue OUTPUT;
+SELECT @getValue;
+--A value of 1 should be returned to be compliant.
+
+--Ensure 'sa' Login Account is set to 'Disabled' (Automated)
+SELECT name, is_disabled
+FROM sys.server_principals
+WHERE sid = 0x01
+AND is_disabled = 0;
+
+--Ensure 'sa' Login Account has been renamed (Automated)
+SELECT name
+FROM sys.server_principals
+WHERE sid = 0x01;
+
+--Ensure 'xp_cmdshell' Server Configuration Option is set to '0' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'xp_cmdshell';
+
+--Ensure 'Server Authentication' Property is set to 'Windows Authentication Mode' (Automated)
+SELECT SERVERPROPERTY('IsIntegratedSecurityOnly') as [login_mode]; 
+A login_mode of 0 indicates mixed mode authentication.
+
+--Ensure CONNECT permissions on the 'guest user' is Revoked within all SQL Server databases excluding the master, msdb and tempdb(Automated)
+USE <database_name>;
+GO
+SELECT DB_NAME() AS DatabaseName, 'guest' AS Database_User,
+[permission_name], [state_desc]
+FROM sys.database_permissions
+WHERE [grantee_principal_id] = DATABASE_PRINCIPAL_ID('guest')
+AND [state_desc] LIKE 'GRANT%'
+AND [permission_name] = 'CONNECT'
+AND DB_NAME() NOT IN ('master','tempdb','msdb');
+
+--Ensure 'Orphaned Users' are Dropped From SQL Server Databases (Automated)
+EXEC sp_change_users_login @Action='Report';
+
+--Ensure the SQL Server’s MSSQL Service Account is Not an Administrator (Manual)
+--Ensure the SQL Server’s SQLAgent Service Account is Not an Administrator (Manual)
+--Ensure the SQL Server’s Full-Text Service Account is Not an Administrator (Manual)
+
+--Ensure only the default permissions specified by Microsoft are granted to the public server role (Automated)
+SELECT *
+FROM master.sys.server_permissions
+WHERE (grantee_principal_id = SUSER_SID(N'public') and state_desc LIKE
+'GRANT%')
+AND NOT (state_desc = 'GRANT' and [permission_name] = 'VIEW ANY DATABASE' and
+class_desc = 'SERVER')
+AND NOT (state_desc = 'GRANT' and [permission_name] = 'CONNECT' and
+class_desc = 'ENDPOINT' and major_id = 2)
+AND NOT (state_desc = 'GRANT' and [permission_name] = 'CONNECT' and
+class_desc = 'ENDPOINT' and major_id = 3)
+AND NOT (state_desc = 'GRANT' and [permission_name] = 'CONNECT' and
+class_desc = 'ENDPOINT' and major_id = 4)
+AND NOT (state_desc = 'GRANT' and [permission_name] = 'CONNECT' and
+class_desc = 'ENDPOINT' and major_id = 5);
+--This query should not return any rows.
+
+--Ensure Windows BUILTIN groups are not SQL Logins (Automated)
+SELECT pr.[name], pe.[permission_name], pe.[state_desc]
+FROM sys.server_principals pr
+JOIN sys.server_permissions pe
+ON pr.principal_id = pe.grantee_principal_id
+WHERE pr.name like 'BUILTIN%';
+
+--Ensure Windows local groups are not SQL Logins (Automated)
+USE [master]
+GO
+SELECT pr.[name] AS LocalGroupName, pe.[permission_name], pe.[state_desc]
+FROM sys.server_principals pr
+JOIN sys.server_permissions pe
+ON pr.[principal_id] = pe.[grantee_principal_id]
+WHERE pr.[type_desc] = 'WINDOWS_GROUP'
+AND pr.[name] like CAST(SERVERPROPERTY('MachineName') AS nvarchar) + '%';
+
+--Ensure the public role in the msdb database is not granted access to SQL Agent proxies (Automated)
+USE [msdb]
+GO
+SELECT sp.name AS proxyname
+FROM dbo.sysproxylogin spl
+JOIN sys.database_principals dp
+ON dp.sid = spl.sid
+JOIN sysproxies sp
+ON sp.proxy_id = spl.proxy_id
+WHERE principal_id = USER_ID('public');
+GO
+--This query should not return any rows.
+
+--Ensure 'MUST_CHANGE' Option is set to 'ON' for All SQL Authenticated Logins (Manual)
+SELECT l.[name], 'sysadmin membership' AS 'Access_Method'
+FROM sys.sql_logins AS l
+WHERE IS_SRVROLEMEMBER('sysadmin',name) = 1
+AND l.is_expiration_checked <> 1
+UNION ALL
+SELECT l.[name], 'CONTROL SERVER' AS 'Access_Method'
+FROM sys.sql_logins AS l
+JOIN sys.server_permissions AS p
+ON l.principal_id = p.grantee_principal_id
+WHERE p.type = 'CL' AND p.state IN ('G', 'W')
+AND l.is_expiration_checked <> 1;
+--No rows should be returned
+
+--Ensure 'CHECK_POLICY' Option is set to 'ON' for All SQL Authenticated Logins (Automated)
+SELECT name, is_disabled
+FROM sys.sql_logins
+WHERE is_policy_checked = 0;
+
+--Ensure 'Maximum number of error log files' is set to greater than or equal to '12' (Automated)
+DECLARE @NumErrorLogs int;
+EXEC master.sys.xp_instance_regread
+N'HKEY_LOCAL_MACHINE',
+N'Software\Microsoft\MSSQLServer\MSSQLServer',
+N'NumErrorLogs',
+@NumErrorLogs OUTPUT;
+SELECT ISNULL(@NumErrorLogs, -1) AS [NumberOfLogFiles];
+
+--Ensure 'Default Trace Enabled' Server Configuration Option is set to '1' (Automated)
+SELECT name,
+CAST(value as int) as value_configured,
+CAST(value_in_use as int) as value_in_use
+FROM sys.configurations
+WHERE name = 'default trace enabled';
+
+--Ensure 'Login Auditing' is set to Both 'failed' and 'successful logins' (Automated)
+execute xp_loginconfig 'audit level';
+
+--Ensure Database and Application User Input is Sanitized (Manual)
+Revoke any INSERT, UPDATE, or DELETE privileges
+to users so that modifications to data must be done through stored procedures
+
+--Ensure 'CLR Assembly Permission Set' is set to 'SAFE_ACCESS' for All CLR Assemblies (Automated)
+SELECT name,
+permission_set_desc
+FROM sys.assemblies
+WHERE is_user_defined = 1;
+All the returned assemblies should show SAFE_ACCESS in the permission_set_desc column.
+
+--Ensure 'Symmetric Key encryption algorithm' is set to 'AES_128' or higher in non-system databases (Automated)
+SELECT db_name() AS Database_Name, name AS Key_Name
+FROM sys.symmetric_keys
+WHERE algorithm_desc NOT IN ('AES_128','AES_192','AES_256')
+AND db_id() > 4;
+
+--Ensure Asymmetric Key Size is set to 'greater than or equal to 2048' in non-system databases (Automated)
+SELECT db_name() AS Database_Name, name AS Key_Name
+FROM sys.asymmetric_keys
+WHERE key_length < 2048
+AND db_id() > 4;
+
+--Ensure 'SQL Server Browser Service' is configured correctly (Manual)
