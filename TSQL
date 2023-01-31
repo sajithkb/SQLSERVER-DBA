@@ -1,0 +1,28 @@
+/* LEAD / LAG  */
+/* *********************************** */
+with cte as
+(
+select data1.*,lead([End Date / Time]) over(partition by cast([Start Date / Time] as date),
+data1.[Unit Name] order by [Start Date / Time] asc) as LEAD_EndDate,
+lead([Request ID]) over(partition by cast([Start Date / Time] as date),
+data1.[Unit Name] order by [Start Date / Time] asc) as PreviousRequestId
+,lead([Start Date / Time]) over(partition by cast([Start Date / Time] as date),data1.[Unit Name] order by [Start Date / Time] asc) as Previous_Start_Date
+,DATEDIFF(hour,[Start Date / Time],[End Date / Time]) as [Hourdiff]
+from data1 )
+--inner join 
+--cte 
+--on data1.[Unit Name]=cte.[Unit Name] and cte.ddd=cast([Start Date / Time] as date)
+select [Request ID],
+[Start Date / Time],[End Date / Time],
+PreviousRequestId,
+Previous_Start_Date,
+LEAD_EndDate as Previous_Enddate,
+[Unit Name],
+Area,
+Well,
+Contractor,
+Hourdiff as Hour_diff
+from cte where DATEDIFF(hour,[Start Date / Time],[End Date / Time]) <= 24 and LEAD_EndDate is not null
+and LEAD_EndDate < [End Date / Time]
+--and [Request ID]='60265'
+--order by [Start Date / Time],[Unit Name]
