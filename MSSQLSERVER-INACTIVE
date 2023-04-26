@@ -1,0 +1,8 @@
+THE INSTANCE ID ‘MSSQLSERVER’ IS ALREADY IN USE BY SQL SERVER INSTANCE ‘MSSQLSERVER.INACTIVE’
+msiexec - Provides the means to install, modify, and perform operations on Windows Installer from the command line.
+
+Search for "Datastore_Discovery.xml".Find the product code for the INACTIVE instance and execute below in an administrative command prompt.
+This uninstalls the INACTIVE instance for that particular component.
+
+msiexec /x {F01BC425-ABD3-41AA-9B88-8B1521B2B5D0}
+msiexec /x {F7F6414B-264B-4C08-830B-3E6722F5F025}
