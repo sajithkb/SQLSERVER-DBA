@@ -6,3 +6,5 @@ This uninstalls the INACTIVE instance for that particular component.
 
 msiexec /x {F01BC425-ABD3-41AA-9B88-8B1521B2B5D0}
 msiexec /x {F7F6414B-264B-4C08-830B-3E6722F5F025}
+
+https://jbswiki.com/2020/09/10/the-instance-id-mssqlserver-is-already-in-use-by-sql-server-instance-mssqlserver-inactive/
