@@ -1,0 +1,10 @@
+USE MASTER 
+GO 
+
+EXEC sp_ms_marksystemobject 'sp_Index_Rebuild_Offline_reorganize_SKB' 
+GO 
+
+SELECT NAME, IS_MS_SHIPPED 
+FROM SYS.OBJECTS 
+WHERE NAME = 'sp_Index_Rebuild_Offline_reorganize_SKB' 
+GO 
