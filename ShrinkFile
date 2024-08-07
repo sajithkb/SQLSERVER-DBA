@@ -1,0 +1,14 @@
+/* Dynamic SQL to shrink all the SQl log files script*/
+
+use master;
+go
+SELECT
+'USE [' + d.name + N'] ' 
++'DBCC SHRINKFILE(2);'
+FROM 
+SYS.MASTER_FILES MF
+JOIN
+SYS.DATABASES D
+ON MF.DATABASE_ID=D.DATABASE_ID
+WHERE D.DATABASE_ID >4 and file_id=2
+order by d.name;
