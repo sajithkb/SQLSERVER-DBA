@@ -32,3 +32,29 @@ reconfigure;
 go
 sp_configure 'show advanced options',0;
 reconfigure;
+
+--------------------------------------------
+
+declare @svrName varchar(20)
+declare @sql varchar(400)
+set @svrName =convert(varchar(200),(select SERVERPROPERTY('machinename')));
+set @sql = 'powershell.exe -c "Get-WmiObject -ComputerName ' + QUOTENAME(@svrName,'''') + ' -Class Win32_Volume -Filter ''DriveType = 3'' | select name,capacity,freespace,SystemName | foreach{$_.name+''|''+$_.capacity/1048576+''%''+$_.freespace/1048576+''*''+$_.SystemName+''#''}" '
+ 
+--creating a temporary table
+CREATE TABLE #output
+(line varchar(255))
+ 
+--inserting disk name, total space and free space value in to temporary table
+insert #output
+EXEC xp_cmdshell @sql
+select cast(rtrim(ltrim(SUBSTRING(line,1,CHARINDEX('|',line) -1)))as nvarchar)  as drivename
+      ,cast(round(cast(rtrim(ltrim(SUBSTRING(line,CHARINDEX('|',line)+1,
+      (CHARINDEX('%',line) -1)-CHARINDEX('|',line)) )) as Float)/1024,0)as float) as 'capacity(GB)'
+      ,cast(round(cast(rtrim(ltrim(SUBSTRING(line,CHARINDEX('%',line)+1,
+      (CHARINDEX('*',line) -1)-CHARINDEX('%',line)) )) as Float) /1024 ,0)as float)as 'freespace(GB)'
+      ,cast(rtrim(ltrim(SUBSTRING(line,CHARINDEX('*',line)+1,(CHARINDEX('#',line)-1)-CHARINDEX('*',line))))as nvarchar) as servername,
+      SYSDATETIME() as INSERT_DATE  from #output
+       where line like '[A-Z][:]%'
+       order by [freespace(GB)]
+
+--------------------------------------------------
